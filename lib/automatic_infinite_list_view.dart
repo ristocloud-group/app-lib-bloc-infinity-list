@@ -4,7 +4,14 @@ part of 'bloc_infinity_list.dart';
 ///
 /// Automatically loads more items when the user scrolls to the bottom, with a customizable and dynamic container.
 class AutomaticInfiniteListView<T> extends InfiniteListView<T> {
+  final EdgeInsetsGeometry? itemPadding;
+  final EdgeInsetsGeometry? loadingPadding;
+  final EdgeInsetsGeometry? noMoreItemPadding;
+
   const AutomaticInfiniteListView({
+    this.itemPadding,
+    this.loadingPadding,
+    this.noMoreItemPadding,
     super.key,
     required super.bloc,
     required super.itemBuilder,
@@ -84,11 +91,32 @@ class AutomaticInfiniteListViewState<T>
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
+              final previousState = widget.bloc.state;
               widget.bloc.add(LoadItemsEvent());
               await widget.bloc.stream.firstWhere(
                   (state) => state is LoadedState<T> || state is ErrorState<T>);
+              if (previousState is LoadedState<T>) {
+                setState(() {});
+              }
+              if (previousState is LoadedState<T>) {
+                setState(() {});
+              }
             },
             child: BlocBuilder<InfiniteListBloc<T>, BaseInfiniteListState<T>>(
+              buildWhen: (previous, current) {
+                if (previous is LoadingState<T> && current is LoadedState<T>) {
+                  return true;
+                }
+                if (previous is LoadedState<T> && current is LoadedState<T>) {
+                  return previous.state.items.length !=
+                      current.state.items.length;
+                }
+                if (previous is LoadingState<T> &&
+                    current is NoMoreItemsState<T>) {
+                  return true;
+                }
+                return previous.runtimeType != current.runtimeType;
+              },
               bloc: widget.bloc,
               builder: (context, state) {
                 if (state is InitialState<T>) {
@@ -125,20 +153,32 @@ class AutomaticInfiniteListViewState<T>
                         shrinkWrap: widget.shrinkWrap,
                         itemCount: state is LoadingState<T>
                             ? items.length + 1
-                            : items.length,
+                            : state is NoMoreItemsState<T>
+                                ? items.length + 1
+                                : items.length,
                         separatorBuilder: (context, index) =>
                             widget.dividerWidget ?? const SizedBox.shrink(),
                         itemBuilder: (context, index) {
                           if (index < items.length) {
                             return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 8.0),
+                              padding: widget.itemPadding ??
+                                  const EdgeInsets.symmetric(vertical: 4.0),
                               child: widget.itemBuilder(context, items[index]),
+                            );
+                          } else if (index == items.length &&
+                              state is NoMoreItemsState<T>) {
+                            return Center(
+                              child: Padding(
+                                padding: widget.noMoreItemPadding ??
+                                    const EdgeInsets.all(12.0),
+                                child: _noMoreItemWidget(context),
+                              ),
                             );
                           } else {
                             return Center(
                               child: Padding(
-                                padding: const EdgeInsets.all(16.0),
+                                padding: widget.loadingPadding ??
+                                    const EdgeInsets.all(12.0),
                                 child: _loadingWidget(context),
                               ),
                             );
@@ -151,11 +191,6 @@ class AutomaticInfiniteListViewState<T>
             ),
           ),
         ),
-        if (widget.bloc.state is NoMoreItemsState<T>)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: _noMoreItemWidget(context),
-          ),
       ],
     );
   }
