@@ -1,6 +1,6 @@
 part of 'bloc_infinity_list.dart';
 
-/// A private class for the manual infinite list view implementation.
+/// A class for the manual infinite list view implementation.
 ///
 /// Provides a "Load More" button at the end of the list for manual loading.
 class ManualInfiniteListView<T> extends InfiniteListView<T> {

@@ -87,8 +87,8 @@ class HomePage extends StatefulWidget {
 
 /// State class for [HomePage].
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex =
-      2; // Set ManualInfiniteListPageWithInitialItems as default
+  // Set Automatic as default
+  int _selectedIndex = 0;
 
   final List<Widget> _pages = [
     const AutomaticInfiniteListPage(),
