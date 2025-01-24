@@ -39,15 +39,46 @@ class AutomaticInfiniteListView<T> extends InfiniteListView<T> {
   /// Padding for the 'no more items' indicator.
   final EdgeInsetsGeometry? noMoreItemPadding;
 
-  /// The distance from the bottom at which the widget should trigger [LoadMoreItemsEvent].
-  /// Defaults to `200.0`.
-  final double loadMoreThreshold;
+  /// The distance from the bottom at which the widget should trigger a
+  /// [LoadMoreItemsEvent].
+  ///
+  /// If `null`, defaults to `200.0`.
+  ///
+  /// For example, if [loadMoreThreshold] = 300.0, the widget will attempt to
+  /// load more items once the user is within `300.0` pixels of the bottom.
+  final double? loadMoreThreshold;
 
-  /// Additional bottom offset to consider when computing the bottom scroll threshold.
-  /// By default, it's added to [MediaQuery.of(context).viewPadding.bottom].
-  /// Defaults to `50.0`.
-  final double bottomOffset;
+  /// Additional bottom offset to consider when computing the bottom scroll
+  /// threshold.
+  ///
+  /// If `null`, defaults to `50.0`. By default, this offset is added to
+  /// [MediaQuery.of(context).viewPadding.bottom], allowing for extra spacing
+  /// (e.g., notch areas or other safe areas).
+  final double? bottomOffset;
 
+  /// Creates an [AutomaticInfiniteListView], which automatically loads more
+  /// items when the user scrolls near the bottom of the list.
+  ///
+  /// - [bloc]: The [InfiniteListBloc] responsible for managing list states.
+  /// - [itemBuilder]: A function that builds each list item widget.
+  /// - [shrinkWrap]: Whether the list should wrap its content (`true`) or
+  ///   expand (`false`). Defaults to `false`.
+  /// - [physics]: Custom scroll physics (e.g. [BouncingScrollPhysics] or
+  ///   [NeverScrollableScrollPhysics]).
+  /// - [loadingWidget], [errorWidget], [emptyWidget], [noMoreItemWidget]:
+  ///   Callbacks to provide custom widgets for the various states.
+  /// - [dividerWidget]: A widget shown between items.
+  /// - [showLastDivider]: A callback to conditionally show the divider after the
+  ///   last item.
+  /// - [margin], [padding], [backgroundColor], [borderRadius], [borderColor],
+  ///   [borderWidth], [boxShadow]: Visual parameters for customizing the
+  ///   container that wraps the list.
+  /// - [itemPadding], [loadingPadding], [noMoreItemPadding]: Individual
+  ///   paddings for list items, loading indicators, and "no more items" widget.
+  /// - [loadMoreThreshold]: The distance from the bottom at which the widget
+  ///   should trigger a [LoadMoreItemsEvent]. Defaults to `200.0` if `null`.
+  /// - [bottomOffset]: An additional offset from the bottom to consider,
+  ///   added to the OS-level safe area (notch). Defaults to `50.0` if `null`.
   const AutomaticInfiniteListView({
     super.key,
 
@@ -57,10 +88,10 @@ class AutomaticInfiniteListView<T> extends InfiniteListView<T> {
     /// Whether the list should wrap its contents (`true`) or expand (`false`).
     super.shrinkWrap,
 
-    /// The BLoC responsible for providing list states ([LoadedState], [LoadingState], etc.).
+    /// The [InfiniteListBloc] responsible for providing list states ([LoadedState], [LoadingState], etc.).
     required super.bloc,
 
-    /// The builder function used to create individual list items.
+    /// A builder function used to create individual list items of type [T].
     required super.itemBuilder,
 
     // Customizable decorations and visual parameters for the container
@@ -85,11 +116,11 @@ class AutomaticInfiniteListView<T> extends InfiniteListView<T> {
     this.loadingPadding,
     this.noMoreItemPadding,
 
-    /// Custom threshold for infinite scroll detection
-    this.loadMoreThreshold = 200.0,
+    /// Custom threshold for infinite scroll detection (null defaults to 200.0)
+    this.loadMoreThreshold,
 
-    /// Additional offset from the bottom to consider
-    this.bottomOffset = 50.0,
+    /// Additional offset from the bottom to consider (null defaults to 50.0)
+    this.bottomOffset,
   });
 
   @override
@@ -99,7 +130,8 @@ class AutomaticInfiniteListView<T> extends InfiniteListView<T> {
 
 class AutomaticInfiniteListViewState<T>
     extends State<AutomaticInfiniteListView<T>> {
-  /// The internal [ScrollController] that manages scroll events and detects "bottom" for infinite scroll.
+  /// The internal [ScrollController] that manages scroll events
+  /// and detects when we reach the bottom of the list.
   late final ScrollController _scrollController;
 
   @override
@@ -116,14 +148,15 @@ class AutomaticInfiniteListViewState<T>
 
   @override
   void dispose() {
-    // Detach listener and dispose controller to avoid memory leaks.
+    // Detach the listener and dispose of the controller to avoid memory leaks.
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
-  /// Called whenever the scroll position changes to check if we've reached the bottom
-  /// and, if so, dispatch a [LoadMoreItemsEvent].
+  /// Called whenever the scroll position changes, checking if we've reached
+  /// the "bottom" threshold. If so, and if the current state is [LoadedState],
+  /// dispatch a [LoadMoreItemsEvent].
   void _onScroll() {
     if (_isBottom) {
       final currentState = widget.bloc.state;
@@ -133,21 +166,25 @@ class AutomaticInfiniteListViewState<T>
     }
   }
 
-  /// Checks whether the user has scrolled within [widget.loadMoreThreshold]
-  /// of the bottom of the scrollable area, considering [widget.bottomOffset]
-  /// plus any OS-level bottom padding (e.g. on iOS with a notch).
+  /// Determines whether the user has scrolled within [widget.loadMoreThreshold]
+  /// of the bottom of the scrollable area, factoring in [widget.bottomOffset]
+  /// plus any OS-level bottom padding (e.g., for notches or home indicator bars).
   bool get _isBottom {
     if (!_scrollController.hasClients) return false;
 
     final double maxScroll = _scrollController.position.maxScrollExtent;
     final double currentScroll = _scrollController.position.pixels;
-    final double bottomSafeArea =
-        MediaQuery.of(context).viewPadding.bottom + widget.bottomOffset;
 
-    // If the user is within [loadMoreThreshold + bottomSafeArea] of the bottom,
-    // we consider it "near the bottom".
-    return (maxScroll - currentScroll) <=
-        (widget.loadMoreThreshold + bottomSafeArea);
+    // If user didn't specify, default to 200.0 for threshold and 50.0 for offset.
+    final double threshold = widget.loadMoreThreshold ?? 200.0;
+    final double offset = widget.bottomOffset ?? 50.0;
+
+    final double bottomSafeArea =
+        MediaQuery.of(context).viewPadding.bottom + offset;
+
+    // If the user is within [threshold + bottomSafeArea] of the bottom,
+    // we consider it "near the bottom."
+    return (maxScroll - currentScroll) <= (threshold + bottomSafeArea);
   }
 
   @override
@@ -211,8 +248,13 @@ class AutomaticInfiniteListViewState<T>
       // If shrinkWrap is false, use our ScrollController for infinite scroll detection
       controller: widget.shrinkWrap == true ? null : _scrollController,
       itemCount: _calculateItemCount(items, state),
-      separatorBuilder: (context, index) =>
-          widget.dividerWidget ?? const SizedBox.shrink(),
+      separatorBuilder: (context, index) {
+        if (index != items.length - 1 ||
+            (widget.showLastDivider?.call() ?? true)) {
+          return widget.dividerWidget ?? const SizedBox.shrink();
+        }
+        return const SizedBox.shrink();
+      },
       itemBuilder: (context, index) {
         return _buildListItem(index, items, state);
       },
