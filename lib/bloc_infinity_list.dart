@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'infinite_list_bloc/infinite_list_bloc.dart';
 
+part 'automatic_infinite_list_view.dart';
+part 'manual_infinite_list_view.dart';
+
 /// A typedef representing a callback function that returns a boolean value.
 ///
 /// This callback is typically used to determine conditional behaviors within the
@@ -26,138 +29,121 @@ import 'infinite_list_bloc/infinite_list_bloc.dart';
 /// ```
 typedef BoolCallbackAction = bool Function();
 
-/// An abstract class representing an infinite scrolling list view.
+/// An abstract base class that implements a stateful widget for infinite lists,
+/// with optional pull-to-refresh and various customization parameters.
 ///
-/// This class provides factory constructors to create instances of infinite
-/// list views with different loading behaviors.
+/// This class is intended to be extended by specialized classes:
+/// - [AutomaticInfiniteListView], created via [InfiniteListView.automatic()],
+///   which automatically loads more items when the user scrolls near the bottom.
+/// - [ManualInfiniteListView], created via [InfiniteListView.manual()],
+///   which provides a "Load More" button for manually fetching additional items.
 ///
-/// - [InfiniteListView.automatic]: Automatically loads more items when the
-///   user scrolls to the bottom.
-/// - [InfiniteListView.manual]: Provides a "Load More" button at the end of
-///   the list for manual loading.
+/// ### Key Features
+/// - It uses a [BlocBuilder] tied to an [InfiniteListBloc] that emits states such
+///   as [InitialState], [LoadingState], [LoadedState], [NoMoreItemsState], and
+///   [ErrorState].
+/// - It can display a variety of widgets for loading, errors, empty states,
+///   and "no more items" states.
+/// - It supports shrink-wrapping and custom [ScrollPhysics].
 ///
-/// The [InfiniteListView] uses an [InfiniteListBloc] to manage the state and
-/// loading of items.
+/// ### Usage
 ///
-/// ## Parameters
-/// - [shrinkWrap]: Determines whether the extent of the scroll view in the
-///   scrollDirection should be determined by the contents being viewed.
-///   - **`true`**: The scroll view will size itself to the height of its
-///     children. Useful when embedding the list within another scrollable widget.
-///   - **`false`**: The scroll view will occupy all available space in the
-///     scrollDirection. Suitable for standalone scrollable lists.
-/// - [physics]: Determines the physics for the scroll view. Controls how the
-///   scroll view behaves when user input is received.
-///   - **`NeverScrollableScrollPhysics`**: Disables scrolling for the list.
-///     Useful when the list is embedded within another scrollable widget.
-///   - **`AlwaysScrollableScrollPhysics`** or other scroll physics: Enables
-///     scrolling as per the specified behavior.
-///
-/// ## Usage Examples
-///
-/// ### Standalone Scrollable List
 /// ```dart
-/// InfiniteListView<MyItem>.automatic(
+/// // Example of creating an automatic infinite list
+/// InfiniteListView<MyModel>.automatic(
 ///   bloc: myInfiniteListBloc,
-///   shrinkWrap: false, // Occupies all available space
-///   physics: AlwaysScrollableScrollPhysics(), // Enables scrolling
-///   itemBuilder: (context, item) => ListTile(title: Text(item.title)),
+///   itemBuilder: (context, item) => MyItemWidget(item: item),
+///   // optional customizations...
 /// );
-/// ```
 ///
-/// ### Embedded within a SingleChildScrollView
-/// ```dart
-/// SingleChildScrollView(
-///   child: Column(
-///     children: [
-///       // Other widgets
-///       InfiniteListView<MyItem>.manual(
-///         bloc: myInfiniteListBloc,
-///         shrinkWrap: true, // Sizes to content
-///         physics: NeverScrollableScrollPhysics(), // Delegates scrolling
-///         itemBuilder: (context, item) => ListTile(title: Text(item.title)),
-///         loadMoreButtonBuilder: (context) => ElevatedButton(
-///           onPressed: () => myInfiniteListBloc.add(LoadMoreItemsEvent()),
-///           child: Text('Load More'),
-///         ),
-///       ),
-///       // Other widgets
-///     ],
-///   ),
+/// // Example of creating a manual infinite list
+/// InfiniteListView<MyModel>.manual(
+///   bloc: myInfiniteListBloc,
+///   itemBuilder: (context, item) => MyItemWidget(item: item),
+///   // optional customizations, including a custom "Load More" button...
 /// );
 /// ```
 abstract class InfiniteListView<T> extends StatefulWidget {
-  /// The BLoC responsible for fetching and managing the list items.
+  /// The [InfiniteListBloc] instance responsible for the list's loading,
+  /// refreshing, and error-handling logic.
   final InfiniteListBloc<T> bloc;
 
-  /// Determines whether the scroll view should shrink to fit its content.
+  /// Whether the internal list should wrap its contents (`true`) or expand
+  /// to fill its parent (`false`).
+  ///
+  /// - If `true`, typically the widget may be placed inside another scrollable
+  ///   parent, and it might use [NeverScrollableScrollPhysics] internally.
+  /// - If `false`, the list uses normal scroll physics and can expand to fill
+  ///   the available space.
   final bool shrinkWrap;
 
-  /// A function that builds the widget for each item in the list.
-  final Widget Function(BuildContext context, T item) itemBuilder;
-
-  /// A widget to display while the list is loading.
-  final Widget Function(BuildContext context)? loadingWidget;
-
-  /// A widget to display when an error occurs.
-  final Widget Function(BuildContext context, String error)? errorWidget;
-
-  /// A widget to display when there are no items in the list.
-  final Widget Function(BuildContext context)? emptyWidget;
-
-  /// A widget to display when there are no more items in the list.
-  final Widget Function(BuildContext context)? noMoreItemWidget;
-
-  /// A widget to display between the items in the list.
-  final Widget? dividerWidget;
-
-  /// A callback to determine whether to show the last divider in the list.
+  /// Custom [ScrollPhysics] for the internal list view.
   ///
-  /// When building the list items, [InfiniteListView] uses this callback to decide
-  /// if the divider should be displayed after the final item in the list. This is
-  /// useful for scenarios where the last item should not have a trailing divider,
-  /// or when additional conditions need to be met.
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// InfiniteListView<MyItem>.manual(
-  ///   bloc: myInfiniteListBloc,
-  ///   itemBuilder: (context, item) => ListTile(title: Text(item.title)),
-  ///   showLastDivider: () => false, // Hides the last divider
-  /// );
-  /// ```
-  final BoolCallbackAction? showLastDivider;
-
-  /// The margin for the list view.
-  final EdgeInsetsGeometry? margin;
-
-  /// The padding for the list view.
-  final EdgeInsetsGeometry? padding;
-
-  /// The background color of the list view.
-  final Color? backgroundColor;
-
-  /// The border radius of the list view.
-  final BorderRadiusGeometry? borderRadius;
-
-  /// The border color of the list view.
-  final Color borderColor;
-
-  /// The border width of the list view.
-  final double borderWidth;
-
-  /// The box shadow for the list view.
-  final List<BoxShadow>? boxShadow;
-
-  /// The physics for the scroll view.
+  /// Defaults to:
+  /// - [NeverScrollableScrollPhysics] if [shrinkWrap] is `true`,
+  /// - [AlwaysScrollableScrollPhysics] if [shrinkWrap] is `false`,
+  /// unless specified otherwise.
   final ScrollPhysics? physics;
 
-  /// Creates an [InfiniteListView] widget.
+  /// A builder function to create each item of type [T] within the list.
+  final Widget Function(BuildContext context, T item) itemBuilder;
+
+  /// An optional builder for a loading widget, shown when the list is in
+  /// a [LoadingState] or when it first initializes ([InitialState]).
+  final Widget Function(BuildContext context)? loadingWidget;
+
+  /// An optional builder for an error widget, shown when the list is in an
+  /// [ErrorState]. Receives the error message as a parameter.
+  final Widget Function(BuildContext context, String error)? errorWidget;
+
+  /// An optional builder for an empty widget, shown when there are no items
+  /// in the list ([LoadedState.state.items] is empty).
+  final Widget Function(BuildContext context)? emptyWidget;
+
+  /// An optional builder for a widget indicating there are no more items,
+  /// shown when the bloc reaches [NoMoreItemsState].
+  final Widget Function(BuildContext context)? noMoreItemWidget;
+
+  /// An optional widget to display between list items (e.g., a divider).
+  final Widget? dividerWidget;
+
+  /// A callback determining whether to display the divider after the last item.
+  /// If not provided, the divider is shown by default.
+  final BoolCallbackAction? showLastDivider;
+
+  /// Outer margin around the container that wraps the list.
+  final EdgeInsetsGeometry? margin;
+
+  /// Inner padding within the container that wraps the list.
+  final EdgeInsetsGeometry? padding;
+
+  /// Background color of the container that wraps the list.
+  final Color? backgroundColor;
+
+  /// Optional border radius for rounding the corners of the container.
+  final BorderRadiusGeometry? borderRadius;
+
+  /// Border color of the container. Defaults to [Colors.transparent].
+  final Color borderColor;
+
+  /// Border width for the container. Defaults to `1`.
+  final double borderWidth;
+
+  /// A list of [BoxShadow] for the container, allowing shadow effects.
+  final List<BoxShadow>? boxShadow;
+
+  /// Creates an [InfiniteListView].
+  ///
+  /// This constructor is generally not called directly, but rather through
+  /// one of the factory constructors: [InfiniteListView.automatic] or
+  /// [InfiniteListView.manual]. Subclasses like [AutomaticInfiniteListView]
+  /// and [ManualInfiniteListView] extend this class to provide specific
+  /// loading behaviors.
   const InfiniteListView({
     super.key,
     required this.bloc,
-    required this.shrinkWrap,
+    this.shrinkWrap = false,
+    this.physics,
     required this.itemBuilder,
     this.loadingWidget,
     this.errorWidget,
@@ -172,18 +158,31 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     this.borderColor = Colors.transparent,
     this.borderWidth = 1,
     this.boxShadow,
-    this.physics,
   });
 
-  /// Factory constructor for automatic loading mode.
+  /// Creates an [AutomaticInfiniteListView], which automatically loads more
+  /// items when the user scrolls near the bottom of the list.
   ///
-  /// Automatically loads more items when the user scrolls to the bottom of
-  /// the list.
+  /// - [bloc]: An [InfiniteListBloc] that manages the list’s states (loading,
+  ///   error, loaded, etc.).
+  /// - [itemBuilder]: A function to build each list item widget.
+  /// - [shrinkWrap]: Whether the list should wrap its content.
+  ///   Defaults to `false`.
+  /// - [physics]: Optional custom scroll physics.
+  /// - [loadingWidget], [errorWidget], [emptyWidget], [noMoreItemWidget]:
+  ///   Callbacks to provide custom widgets for various states.
+  /// - [dividerWidget]: A widget shown between items.
+  /// - [showLastDivider]: A callback to conditionally show the divider
+  ///   after the last item.
+  /// - [margin], [padding], [backgroundColor], [borderRadius], [borderColor],
+  ///   [borderWidth], [boxShadow]: Visual customization for the container
+  ///   wrapping the list.
   factory InfiniteListView.automatic({
     Key? key,
     required InfiniteListBloc<T> bloc,
     required Widget Function(BuildContext context, T item) itemBuilder,
-    // Optional parameters
+    bool shrinkWrap = false,
+    ScrollPhysics? physics,
     Widget Function(BuildContext context)? loadingWidget,
     Widget Function(BuildContext context, String error)? errorWidget,
     Widget Function(BuildContext context)? emptyWidget,
@@ -197,12 +196,13 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     Color borderColor = Colors.transparent,
     double borderWidth = 1,
     List<BoxShadow>? boxShadow,
-    ScrollPhysics? physics,
   }) {
-    return _AutomaticInfiniteListView<T>(
+    return AutomaticInfiniteListView<T>(
       key: key,
       bloc: bloc,
       itemBuilder: itemBuilder,
+      shrinkWrap: shrinkWrap,
+      physics: physics,
       loadingWidget: loadingWidget,
       errorWidget: errorWidget,
       emptyWidget: emptyWidget,
@@ -216,21 +216,33 @@ abstract class InfiniteListView<T> extends StatefulWidget {
       borderColor: borderColor,
       borderWidth: borderWidth,
       boxShadow: boxShadow,
-      physics: physics,
     );
   }
 
-  /// Factory constructor for manual loading mode.
+  /// Creates a [ManualInfiniteListView], which displays a "Load More" button
+  /// (or a custom widget) at the bottom of the list to fetch additional items
+  /// when tapped.
   ///
-  /// Provides a "Load More" button at the end of the list for manual loading
-  /// of more items.
+  /// - [bloc]: An [InfiniteListBloc] that manages the list’s states.
+  /// - [itemBuilder]: A function to build each list item widget.
+  /// - [loadMoreButtonBuilder]: A callback to build a custom "Load More" button.
+  ///   If omitted, a default button is shown.
+  /// - [shrinkWrap]: Whether the list should wrap its content. Defaults to `false`.
+  /// - [physics]: Optional custom scroll physics.
+  /// - [loadingWidget], [errorWidget], [emptyWidget], [noMoreItemWidget]:
+  ///   Callbacks to provide custom widgets for various states.
+  /// - [dividerWidget]: A widget shown between items.
+  /// - [showLastDivider]: A callback to conditionally show the divider
+  ///   after the last item.
+  /// - [margin], [padding], [backgroundColor], [borderRadius], [borderColor],
+  ///   [borderWidth], [boxShadow]: Visual customization for the container
+  ///   wrapping the list.
   factory InfiniteListView.manual({
     Key? key,
     required InfiniteListBloc<T> bloc,
     bool shrinkWrap = false,
     required Widget Function(BuildContext context, T item) itemBuilder,
     Widget Function(BuildContext context)? loadMoreButtonBuilder,
-    // Optional parameters
     Widget Function(BuildContext context)? loadingWidget,
     Widget Function(BuildContext context, String error)? errorWidget,
     Widget Function(BuildContext context)? emptyWidget,
@@ -246,7 +258,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     List<BoxShadow>? boxShadow,
     ScrollPhysics? physics,
   }) {
-    return _ManualInfiniteListView<T>(
+    return ManualInfiniteListView<T>(
       key: key,
       bloc: bloc,
       shrinkWrap: shrinkWrap,
@@ -267,354 +279,5 @@ abstract class InfiniteListView<T> extends StatefulWidget {
       boxShadow: boxShadow,
       physics: physics,
     );
-  }
-}
-
-/// A private class for the automatic infinite list view implementation.
-///
-/// Automatically loads more items when the user scrolls to the bottom.
-class _AutomaticInfiniteListView<T> extends InfiniteListView<T> {
-  const _AutomaticInfiniteListView({
-    super.key,
-    required super.bloc,
-    required super.itemBuilder,
-    super.shrinkWrap = false, // Typically false for standalone lists
-    // Optional parameters
-    super.loadingWidget,
-    super.errorWidget,
-    super.emptyWidget,
-    super.noMoreItemWidget,
-    super.dividerWidget,
-    super.showLastDivider,
-    super.margin,
-    super.padding,
-    super.backgroundColor,
-    super.borderRadius,
-    super.borderColor,
-    super.borderWidth,
-    super.boxShadow,
-    super.physics,
-  });
-
-  @override
-  State<InfiniteListView<T>> createState() =>
-      _AutomaticInfiniteListViewState<T>();
-}
-
-class _AutomaticInfiniteListViewState<T>
-    extends State<_AutomaticInfiniteListView<T>> {
-  late final ScrollController _scrollController;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _scrollController = ScrollController();
-    _scrollController.addListener(_onScroll);
-
-    // Load initial items
-    widget.bloc.add(LoadItemsEvent());
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  /// Called whenever the scroll position changes.
-  void _onScroll() {
-    if (_isBottom) {
-      // Trigger loading more items when scrolled to the bottom
-      final currentState = widget.bloc.state;
-      if (currentState is LoadedState<T>) {
-        widget.bloc.add(LoadMoreItemsEvent());
-      }
-    }
-  }
-
-  /// Checks if the scroll position is near the bottom.
-  bool get _isBottom {
-    if (!_scrollController.hasClients) return false;
-    const threshold = 200.0; // Distance from bottom to trigger load
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    return (maxScroll - currentScroll) <= threshold;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<InfiniteListBloc<T>, BaseInfiniteListState<T>>(
-      bloc: widget.bloc,
-      builder: (context, state) {
-        if (state is InitialState<T>) {
-          return _loadingWidget(context);
-        } else if (state is ErrorState<T>) {
-          return _errorWidget(context, state.error.toString());
-        } else if (state is LoadedState<T> ||
-            state is NoMoreItemsState<T> ||
-            state is LoadingState<T>) {
-          final items = state.state.items;
-          if (items.isEmpty) {
-            return _emptyWidget(context);
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              widget.bloc.add(LoadItemsEvent());
-              // Wait for the bloc to emit a LoadedState or ErrorState
-              await widget.bloc.stream.firstWhere(
-                  (state) => state is LoadedState<T> || state is ErrorState<T>);
-            },
-            child: Container(
-              margin: widget.margin,
-              padding: widget.padding,
-              decoration: BoxDecoration(
-                color: widget.backgroundColor,
-                borderRadius: widget.borderRadius,
-                border: Border.all(
-                  color: widget.borderColor,
-                  width: widget.borderWidth,
-                ),
-                boxShadow: widget.boxShadow,
-              ),
-              child: ListView.separated(
-                controller: _scrollController,
-                physics:
-                    widget.physics ?? const AlwaysScrollableScrollPhysics(),
-                // Default scroll physics
-                shrinkWrap: widget.shrinkWrap,
-                // Typically false for standalone lists
-                itemCount: items.length + 1,
-                // Add one for the bottom indicator
-                separatorBuilder: (context, index) =>
-                    widget.dividerWidget ?? const SizedBox.shrink(),
-                itemBuilder: (context, index) {
-                  if (index < items.length) {
-                    return widget.itemBuilder(context, items[index]);
-                  } else {
-                    // Bottom indicator based on state
-                    return _buildBottomIndicator(state);
-                  }
-                },
-              ),
-            ),
-          );
-        }
-        return const SizedBox.shrink();
-      },
-    );
-  }
-
-  /// Builds the bottom indicator widget based on the current state.
-  Widget _buildBottomIndicator(BaseInfiniteListState<T> state) {
-    if (state is LoadingState<T>) {
-      return _loadingWidget(context);
-    } else if (state is NoMoreItemsState<T>) {
-      return _noMoreItemWidget(context);
-    } else {
-      return const SizedBox.shrink();
-    }
-  }
-
-  /// Builds the widget for the loading indicator.
-  Widget _loadingWidget(BuildContext context) {
-    return widget.loadingWidget?.call(context) ??
-        const Center(child: CircularProgressIndicator());
-  }
-
-  /// Builds the widget for displaying an error.
-  Widget _errorWidget(BuildContext context, String error) {
-    return widget.errorWidget?.call(context, error) ??
-        Center(child: Text('Error: $error'));
-  }
-
-  /// Builds the widget for an empty list.
-  Widget _emptyWidget(BuildContext context) {
-    return widget.emptyWidget?.call(context) ??
-        const Center(child: Text('No items'));
-  }
-
-  /// Builds the widget for when there are no more items in the list.
-  Widget _noMoreItemWidget(BuildContext context) {
-    return widget.noMoreItemWidget?.call(context) ??
-        const Center(child: Text('No more items'));
-  }
-}
-
-/// A private class for the manual infinite list view implementation.
-///
-/// Provides a "Load More" button at the end of the list for manual loading.
-class _ManualInfiniteListView<T> extends InfiniteListView<T> {
-  /// A builder for the "Load More" button when in manual mode.
-  final Widget Function(BuildContext context)? loadMoreButtonBuilder;
-
-  const _ManualInfiniteListView({
-    super.key,
-    required super.bloc,
-    required super.shrinkWrap,
-    required super.itemBuilder,
-    this.loadMoreButtonBuilder,
-    // Optional parameters
-    super.loadingWidget,
-    super.errorWidget,
-    super.emptyWidget,
-    super.noMoreItemWidget,
-    super.dividerWidget,
-    super.showLastDivider,
-    super.margin,
-    super.padding,
-    super.backgroundColor,
-    super.borderRadius,
-    super.borderColor,
-    super.borderWidth,
-    super.boxShadow,
-    super.physics,
-  });
-
-  @override
-  State<InfiniteListView<T>> createState() => _ManualInfiniteListViewState<T>();
-}
-
-class _ManualInfiniteListViewState<T>
-    extends State<_ManualInfiniteListView<T>> {
-  @override
-  void initState() {
-    super.initState();
-
-    // Load initial items
-    widget.bloc.add(LoadItemsEvent());
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<InfiniteListBloc<T>, BaseInfiniteListState<T>>(
-      bloc: widget.bloc,
-      builder: (context, state) {
-        if (state is InitialState<T>) {
-          return _loadingWidget(context);
-        } else if (state is ErrorState<T>) {
-          return _errorWidget(context, state.error.toString());
-        } else if (state is LoadedState<T> ||
-            state is NoMoreItemsState<T> ||
-            state is LoadingState<T>) {
-          final items = state.state.items;
-          if (items.isEmpty) {
-            return _emptyWidget(context);
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              widget.bloc.add(LoadItemsEvent());
-              // Wait for the bloc to emit a LoadedState or ErrorState
-              await widget.bloc.stream.firstWhere(
-                  (state) => state is LoadedState<T> || state is ErrorState<T>);
-            },
-            child: Container(
-              margin: widget.margin,
-              padding: widget.padding,
-              decoration: BoxDecoration(
-                color: widget.backgroundColor,
-                borderRadius: widget.borderRadius,
-                border: Border.all(
-                  color: widget.borderColor,
-                  width: widget.borderWidth,
-                ),
-                boxShadow: widget.boxShadow,
-              ),
-              child: ListView.separated(
-                padding: EdgeInsets.zero,
-                // Respect the shrinkWrap parameter
-                shrinkWrap: widget.shrinkWrap,
-                physics: widget.physics ??
-                    (widget.shrinkWrap
-                        ? const NeverScrollableScrollPhysics()
-                        : const AlwaysScrollableScrollPhysics()),
-                // - If shrinkWrap is true, disable internal scrolling
-                // - If shrinkWrap is false, enable scrolling based on the provided physics
-                itemCount: items.length + 1,
-                separatorBuilder: (context, index) {
-                  if (index != items.length - 1 ||
-                      (widget.showLastDivider?.call() ?? true)) {
-                    return widget.dividerWidget ?? const SizedBox.shrink();
-                  }
-                  return const SizedBox.shrink();
-                },
-                itemBuilder: (context, index) {
-                  if (index < items.length) {
-                    return widget.itemBuilder(context, items[index]);
-                  } else {
-                    // "Load More" button or indicator
-                    return _buildLoadMoreButton(state);
-                  }
-                },
-              ),
-            ),
-          );
-        }
-        return const SizedBox.shrink();
-      },
-    );
-  }
-
-  /// Builds the "Load More" button or indicator based on the current state.
-  Widget _buildLoadMoreButton(BaseInfiniteListState<T> state) {
-    final isLoading = state is LoadingState<T>;
-    final noMoreItems = state is NoMoreItemsState<T>;
-
-    if (noMoreItems) {
-      return _noMoreItemWidget(context);
-    }
-
-    return Center(
-      child: widget.loadMoreButtonBuilder?.call(context) ??
-          ElevatedButton(
-            key: const Key('loadMoreButton'), // Assigning a unique key here
-            onPressed:
-                isLoading ? null : () => widget.bloc.add(LoadMoreItemsEvent()),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 50),
-              backgroundColor: Colors.deepPurple,
-            ),
-            child: isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      strokeWidth: 2.0,
-                    ),
-                  )
-                : const Text(
-                    'Load More',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-          ),
-    );
-  }
-
-  /// Builds the widget for the loading indicator.
-  Widget _loadingWidget(BuildContext context) {
-    return widget.loadingWidget?.call(context) ??
-        const Center(child: CircularProgressIndicator());
-  }
-
-  /// Builds the widget for displaying an error.
-  Widget _errorWidget(BuildContext context, String error) {
-    return widget.errorWidget?.call(context, error) ??
-        Center(child: Text('Error: $error'));
-  }
-
-  /// Builds the widget for an empty list.
-  Widget _emptyWidget(BuildContext context) {
-    return widget.emptyWidget?.call(context) ??
-        const Center(child: Text('No items'));
-  }
-
-  /// Builds the widget for when there are no more items in the list.
-  Widget _noMoreItemWidget(BuildContext context) {
-    return widget.noMoreItemWidget?.call(context) ??
-        const Center(child: Text('No more items'));
   }
 }
