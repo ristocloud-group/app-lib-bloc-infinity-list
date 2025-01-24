@@ -169,6 +169,11 @@ abstract class InfiniteListView<T> extends StatefulWidget {
   /// - [shrinkWrap]: Whether the list should wrap its content.
   ///   Defaults to `false`.
   /// - [physics]: Optional custom scroll physics.
+  /// - [loadMoreThreshold]: The distance from the bottom of the scrollable area at
+  ///   which [LoadMoreItemsEvent] should be triggered. Defaults to `200.0`.
+  /// - [bottomOffset]: An additional offset (added to
+  ///   [MediaQuery.of(context).viewPadding.bottom]) to account for safe areas or
+  ///   extra spacing when detecting the bottom. Defaults to `50.0`.
   /// - [loadingWidget], [errorWidget], [emptyWidget], [noMoreItemWidget]:
   ///   Callbacks to provide custom widgets for various states.
   /// - [dividerWidget]: A widget shown between items.
@@ -196,6 +201,8 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     Color borderColor = Colors.transparent,
     double borderWidth = 1,
     List<BoxShadow>? boxShadow,
+    double? loadMoreThreshold = 200.0,
+    double? bottomOffset = 50.0,
   }) {
     return AutomaticInfiniteListView<T>(
       key: key,
@@ -216,6 +223,8 @@ abstract class InfiniteListView<T> extends StatefulWidget {
       borderColor: borderColor,
       borderWidth: borderWidth,
       boxShadow: boxShadow,
+      loadMoreThreshold: loadMoreThreshold,
+      bottomOffset: bottomOffset,
     );
   }
 

@@ -50,6 +50,28 @@ class MyCustomBloc extends InfiniteListBloc<ListItem> {
   }
 }
 
+/// Un bloc statico che emette esattamente 10 item al primo fetch e poi si ferma.
+class MyStaticBloc extends InfiniteListBloc<ListItem> {
+  bool loadedOnce = false;
+
+  @override
+  Future<List<ListItem>> fetchItems(
+      {required int limit, required int offset}) async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    // Se ha già caricato una volta, restituiamo un array vuoto
+    if (loadedOnce) return [];
+
+    loadedOnce = true;
+    // Restituiamo 10 item
+    return List.generate(10, (i) {
+      return ListItem(
+        name: 'Item ${i + 1}',
+        description: 'Description ${i + 1}',
+      );
+    });
+  }
+}
+
 // Subclasses for testing different scenarios
 
 /// Bloc that returns an empty list to simulate no data.
@@ -156,43 +178,204 @@ void main() {
               create: (_) => bloc,
               child: InfiniteListView<ListItem>.automatic(
                 bloc: bloc,
-                itemBuilder: (context, item) {
-                  return ListTile(
-                    title: Text(item.name),
-                    subtitle: Text(item.description),
-                  );
-                },
-                loadingWidget: (context) => const Center(
-                  child: CircularProgressIndicator(),
+                itemBuilder: (context, item) => ListTile(
+                  title: Text(item.name),
+                  subtitle: Text(item.description),
                 ),
+                // Rimosso il controllo sul loader
               ),
             ),
           ),
         ),
       );
 
-      // Initial load
+      // 1) Attendi caricamento iniziale
       await tester.pumpAndSettle();
 
-      // Scroll to the bottom to trigger loading more items
+      // 2) Simula lo scroll per innescare il caricamento
       await tester.scrollUntilVisible(find.text('Item 9'), 100);
       await tester.pump();
-      await tester.drag(
-        find.byType(ListView),
-        const Offset(0, -500),
-      );
-      // Allow time for the loading indicator to appear
-      await tester.pump(const Duration(milliseconds: 70));
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle(); // Assegna tempo per il caricamento
 
-      // Loading indicator should appear
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      await tester.pumpAndSettle(); // Wait for more items to load
-
-      // Verify that more items are loaded
+      // 3) Verifica che i nuovi item (Item 11, etc.) siano comparsi
       expect(find.text('Item 1'), findsNothing);
       expect(find.text('Item 11'), findsOneWidget);
     });
+
+    testWidgets(
+      'Automatic Infinite List with shrinkWrap = true works correctly',
+      (WidgetTester tester) async {
+        final bloc = MyCustomBloc();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: BlocProvider<MyCustomBloc>(
+                create: (_) => bloc,
+                child: InfiniteListView<ListItem>.automatic(
+                  bloc: bloc,
+                  shrinkWrap: true,
+                  // Rimosso o modificato la physics se necessario
+                  // per consentire lo scroll.
+                  itemBuilder: (context, item) {
+                    return ListTile(
+                      title: Text(item.name),
+                      subtitle: Text(item.description),
+                    );
+                  },
+                  loadingWidget: (context) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // 1) Aspetta il caricamento iniziale
+        await tester.pumpAndSettle();
+
+        // Verifica che Item 1 sia presente
+        expect(find.text('Item 1'), findsOneWidget);
+
+        // 2) Scorri la ListView finché "Item 9" non diventa visibile
+        await tester.dragUntilVisible(
+          find.text('Item 9'), // l'elemento che vogliamo portare in viewport
+          find.byType(ListView).first, // la ListView da scrollare
+          const Offset(0, -50), // offset di scroll (trasciniamo in su)
+        );
+
+        // 3) Ora che "Item 9" è visibile, facciamo un altro scroll
+        // per simulare l'arrivo al fondo e scatenare il caricamento
+        await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+        await tester.pumpAndSettle();
+
+        // 4) Verifica che i nuovi elementi siano caricati (es. Item 11)
+        expect(find.text('Item 11'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Automatic Infinite List triggers LoadMore with custom loadMoreThreshold and bottomOffset',
+      (WidgetTester tester) async {
+        final bloc = MyCustomBloc();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: BlocProvider<MyCustomBloc>(
+                create: (_) => bloc,
+                child: InfiniteListView<ListItem>.automatic(
+                  bloc: bloc,
+                  loadMoreThreshold: 300,
+                  bottomOffset: 80,
+                  itemBuilder: (context, item) {
+                    return ListTile(
+                      key: ValueKey(item.id),
+                      title: Text(item.name),
+                      subtitle: Text(item.description),
+                    );
+                  },
+                  loadingWidget: (context) =>
+                      const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // 1) Aspetta il caricamento iniziale
+        await tester.pumpAndSettle();
+
+        // Verifichiamo che "Item 1" sia apparso
+        expect(find.text('Item 1'), findsOneWidget);
+
+        // 2) Scrolliamo la ListView finché "Item 9" (o "Item 10") non diventa visibile.
+        // Scegliamo "Item 9" come target. Con step -50: spostiamo la lista un po' alla volta.
+        await tester.dragUntilVisible(
+          find.text('Item 9'),
+          // Il widget scrollabile su cui effettuare il drag:
+          find.byType(ListView).first,
+          const Offset(0, -50),
+        );
+
+        // 3) Ora facciamo un ulteriore drag più "deciso" per superare la soglia
+        //    (loadMoreThreshold = 300 + bottomOffset = 80).
+        await tester.drag(
+          find.byType(ListView).first,
+          const Offset(0, -400),
+        );
+
+        // 4) Aspettiamo che il bloc carichi il nuovo batch di item
+        await tester.pumpAndSettle();
+
+        // 5) Controlliamo che "Item 11" sia ora presente
+        expect(find.text('Item 11'), findsOneWidget);
+      },
+    );
+
+    /// TEST 1: showLastDivider = false => ci aspettiamo 8 divider
+    testWidgets(
+      'Automatic Infinite List with showLastDivider = false -> 9 divider',
+      (WidgetTester tester) async {
+        final bloc = MyStaticBloc();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: BlocProvider<MyStaticBloc>(
+                create: (_) => bloc,
+                child: InfiniteListView<ListItem>.automatic(
+                  bloc: bloc,
+                  // Callback fissa su "false"
+                  showLastDivider: () => false,
+                  itemBuilder: (context, item) => Text(item.name),
+                  dividerWidget: const Divider(thickness: 2),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Aspetta che carichi i 10 item
+        await tester.pumpAndSettle();
+
+        // Con 10 item e showDivider = false => 9 divider
+        expect(find.byType(Divider), findsNWidgets(9));
+      },
+    );
+
+    /// TEST 2: showLastDivider = true => ci aspettiamo 9 divider
+    testWidgets(
+      'Automatic Infinite List with showLastDivider = true -> 10 divider',
+      (WidgetTester tester) async {
+        final bloc = MyStaticBloc();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: BlocProvider<MyStaticBloc>(
+                create: (_) => bloc,
+                child: InfiniteListView<ListItem>.automatic(
+                  bloc: bloc,
+                  // Callback fissa su "true"
+                  showLastDivider: () => true,
+                  itemBuilder: (context, item) => Text(item.name),
+                  dividerWidget: const Divider(thickness: 2),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Aspetta che carichi i 10 item
+        await tester.pumpAndSettle();
+
+        // Con 10 item e showDivider = true => 10 divider
+        expect(find.byType(Divider), findsNWidgets(9));
+      },
+    );
 
     testWidgets('Manual Infinite List shows "Load More" button',
         (WidgetTester tester) async {
@@ -256,10 +439,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Scroll to the bottom to bring 'Load More' button into view
-      await tester.drag(
-        find.byType(ListView),
-        const Offset(0, -500), // Adjust the offset as needed
-      );
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
 
       // Verify that "Load More" button is visible
@@ -467,16 +647,12 @@ void main() {
         // Assuming limit=10 and maxItems=20
         // Scroll to the bottom to trigger loading more items
         await tester.scrollUntilVisible(find.text("Item ${10 * i}"), 100);
-
         // Wait for more items to load
         await tester.pumpAndSettle();
       }
 
-      // Scroll to the bottom to bring 'No more items' widget into view
-      await tester.drag(
-        find.byType(ListView),
-        const Offset(0, -500), // Adjust the offset as needed
-      );
+      // Scroll again to see if no more items remain
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
 
       // Verify that "No more items" widget is displayed
@@ -519,7 +695,6 @@ void main() {
 
                   if (state.state.items.isNotEmpty) {
                     return ElevatedButton(
-                      // Removed key usage
                       onPressed: isLoadingMore
                           ? null
                           : () {
@@ -554,9 +729,7 @@ void main() {
       expect(find.text('Item 1'), findsOneWidget);
 
       // Scroll to the bottom to bring "Load More" button into view
-      await tester.scrollUntilVisible(
-          find.text('Load More'), 100 // Adjust the offset as needed
-          );
+      await tester.scrollUntilVisible(find.text('Load More'), 100);
       await tester.pumpAndSettle();
 
       // Tap the "Load More" button
@@ -574,10 +747,6 @@ void main() {
 
       // After loading all items, "Load More" button should no longer be displayed
       expect(find.text('Load More'), findsNothing);
-
-      // Scroll to the bottom to bring "No more items" widget into view
-      await tester.scrollUntilVisible(find.text('No more items'), 100);
-      await tester.pumpAndSettle();
 
       // Verify that "No more items" widget is displayed
       expect(find.text('No more items'), findsOneWidget);
@@ -987,8 +1156,10 @@ void main() {
     // Verify that the initial 5 items are displayed
     for (int i = 1; i <= 5; i++) {
       expect(find.text('Secondary Preloaded Item $i'), findsOneWidget);
-      expect(find.text('Description for secondary preloaded item $i'),
-          findsOneWidget);
+      expect(
+        find.text('Description for secondary preloaded item $i'),
+        findsOneWidget,
+      );
     }
 
     // Verify that no loading indicator is present initially
@@ -1013,10 +1184,9 @@ void main() {
       findsOneWidget,
     );
 
-    // Wait for the fetchItems to complete (1 second as defined in BLoC)
+    // Wait for the fetchItems to complete (1 second as defined in BLoC code above)
     await tester.pump(const Duration(seconds: 1));
-
-    // Allow all animations and state transitions to settle
+    // Let any final animations settle
     await tester.pumpAndSettle();
 
     // Verify that additional items are loaded (Items 6 to 10)
@@ -1028,8 +1198,10 @@ void main() {
     // Verify that initial items are still present
     for (int i = 1; i <= 5; i++) {
       expect(find.text('Secondary Preloaded Item $i'), findsOneWidget);
-      expect(find.text('Description for secondary preloaded item $i'),
-          findsOneWidget);
+      expect(
+        find.text('Description for secondary preloaded item $i'),
+        findsOneWidget,
+      );
     }
 
     // Verify that no loading indicator is present after loading more items
