@@ -351,7 +351,6 @@ gen/
 out/
 
 # Gradle files
-.gradle
 
 # Signing files
 .signing/
@@ -370,8 +369,6 @@ proguard/
 /*/*/build
 /*/*/production
 .navigation/
-*.ipr
-*~
 *.swp
 
 
@@ -387,7 +384,6 @@ proguard/
 obj/
 
 # IntelliJ IDEA
-*.iws
 /out/
 
 # User-specific configurations
@@ -420,8 +416,6 @@ obj/
 .DS_Store?
 
 # Legacy Eclipse project files
-.classpath
-.project
 .cproject
 .settings/
 
@@ -438,19 +432,13 @@ hs_err_pid*
 ## Plugin-specific files:
 
 # mpeltonen/sbt-idea plugin
-.idea_modules/
 
 # JIRA plugin
-atlassian-ide-plugin.xml
 
 # Mongo Explorer plugin
 .idea/mongoSettings.xml
 
 # Crashlytics plugin (for Android Studio and IntelliJ)
-com_crashlytics_export_strings.xml
-crashlytics.properties
-crashlytics-build.properties
-fabric.properties
 
 ### AndroidStudio Patch ###
 
