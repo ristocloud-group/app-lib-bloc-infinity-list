@@ -29,138 +29,121 @@ part 'manual_infinite_list_view.dart';
 /// ```
 typedef BoolCallbackAction = bool Function();
 
-/// An abstract class representing an infinite scrolling list view.
+/// An abstract base class that implements a stateful widget for infinite lists,
+/// with optional pull-to-refresh and various customization parameters.
 ///
-/// This class provides factory constructors to create instances of infinite
-/// list views with different loading behaviors.
+/// This class is intended to be extended by specialized classes:
+/// - [AutomaticInfiniteListView], created via [InfiniteListView.automatic()],
+///   which automatically loads more items when the user scrolls near the bottom.
+/// - [ManualInfiniteListView], created via [InfiniteListView.manual()],
+///   which provides a "Load More" button for manually fetching additional items.
 ///
-/// - [InfiniteListView.automatic]: Automatically loads more items when the
-///   user scrolls to the bottom.
-/// - [InfiniteListView.manual]: Provides a "Load More" button at the end of
-///   the list for manual loading.
+/// ### Key Features
+/// - It uses a [BlocBuilder] tied to an [InfiniteListBloc] that emits states such
+///   as [InitialState], [LoadingState], [LoadedState], [NoMoreItemsState], and
+///   [ErrorState].
+/// - It can display a variety of widgets for loading, errors, empty states,
+///   and "no more items" states.
+/// - It supports shrink-wrapping and custom [ScrollPhysics].
 ///
-/// The [InfiniteListView] uses an [InfiniteListBloc] to manage the state and
-/// loading of items.
+/// ### Usage
 ///
-/// ## Parameters
-/// - [shrinkWrap]: Determines whether the extent of the scroll view in the
-///   scrollDirection should be determined by the contents being viewed.
-///   - **`true`**: The scroll view will size itself to the height of its
-///     children. Useful when embedding the list within another scrollable widget.
-///   - **`false`**: The scroll view will occupy all available space in the
-///     scrollDirection. Suitable for standalone scrollable lists.
-/// - [physics]: Determines the physics for the scroll view. Controls how the
-///   scroll view behaves when user input is received.
-///   - **`NeverScrollableScrollPhysics`**: Disables scrolling for the list.
-///     Useful when the list is embedded within another scrollable widget.
-///   - **`AlwaysScrollableScrollPhysics`** or other scroll physics: Enables
-///     scrolling as per the specified behavior.
-///
-/// ## Usage Examples
-///
-/// ### Standalone Scrollable List
 /// ```dart
-/// InfiniteListView<MyItem>.automatic(
+/// // Example of creating an automatic infinite list
+/// InfiniteListView<MyModel>.automatic(
 ///   bloc: myInfiniteListBloc,
-///   shrinkWrap: false, // Occupies all available space
-///   physics: AlwaysScrollableScrollPhysics(), // Enables scrolling
-///   itemBuilder: (context, item) => ListTile(title: Text(item.title)),
+///   itemBuilder: (context, item) => MyItemWidget(item: item),
+///   // optional customizations...
 /// );
-/// ```
 ///
-/// ### Embedded within a SingleChildScrollView
-/// ```dart
-/// SingleChildScrollView(
-///   child: Column(
-///     children: [
-///       // Other widgets
-///       InfiniteListView<MyItem>.manual(
-///         bloc: myInfiniteListBloc,
-///         shrinkWrap: true, // Sizes to content
-///         physics: NeverScrollableScrollPhysics(), // Delegates scrolling
-///         itemBuilder: (context, item) => ListTile(title: Text(item.title)),
-///         loadMoreButtonBuilder: (context) => ElevatedButton(
-///           onPressed: () => myInfiniteListBloc.add(LoadMoreItemsEvent()),
-///           child: Text('Load More'),
-///         ),
-///       ),
-///       // Other widgets
-///     ],
-///   ),
+/// // Example of creating a manual infinite list
+/// InfiniteListView<MyModel>.manual(
+///   bloc: myInfiniteListBloc,
+///   itemBuilder: (context, item) => MyItemWidget(item: item),
+///   // optional customizations, including a custom "Load More" button...
 /// );
 /// ```
 abstract class InfiniteListView<T> extends StatefulWidget {
-  /// The BLoC responsible for fetching and managing the list items.
+  /// The [InfiniteListBloc] instance responsible for the list's loading,
+  /// refreshing, and error-handling logic.
   final InfiniteListBloc<T> bloc;
 
-  /// Determines whether the scroll view should shrink to fit its content.
+  /// Whether the internal list should wrap its contents (`true`) or expand
+  /// to fill its parent (`false`).
+  ///
+  /// - If `true`, typically the widget may be placed inside another scrollable
+  ///   parent, and it might use [NeverScrollableScrollPhysics] internally.
+  /// - If `false`, the list uses normal scroll physics and can expand to fill
+  ///   the available space.
   final bool shrinkWrap;
 
-  /// A function that builds the widget for each item in the list.
-  final Widget Function(BuildContext context, T item) itemBuilder;
-
-  /// A widget to display while the list is loading.
-  final Widget Function(BuildContext context)? loadingWidget;
-
-  /// A widget to display when an error occurs.
-  final Widget Function(BuildContext context, String error)? errorWidget;
-
-  /// A widget to display when there are no items in the list.
-  final Widget Function(BuildContext context)? emptyWidget;
-
-  /// A widget to display when there are no more items in the list.
-  final Widget Function(BuildContext context)? noMoreItemWidget;
-
-  /// A widget to display between the items in the list.
-  final Widget? dividerWidget;
-
-  /// A callback to determine whether to show the last divider in the list.
+  /// Custom [ScrollPhysics] for the internal list view.
   ///
-  /// When building the list items, [InfiniteListView] uses this callback to decide
-  /// if the divider should be displayed after the final item in the list. This is
-  /// useful for scenarios where the last item should not have a trailing divider,
-  /// or when additional conditions need to be met.
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// InfiniteListView<MyItem>.manual(
-  ///   bloc: myInfiniteListBloc,
-  ///   itemBuilder: (context, item) => ListTile(title: Text(item.title)),
-  ///   showLastDivider: () => false, // Hides the last divider
-  /// );
-  /// ```
-  final BoolCallbackAction? showLastDivider;
-
-  /// The margin for the list view.
-  final EdgeInsetsGeometry? margin;
-
-  /// The padding for the list view.
-  final EdgeInsetsGeometry? padding;
-
-  /// The background color of the list view.
-  final Color? backgroundColor;
-
-  /// The border radius of the list view.
-  final BorderRadiusGeometry? borderRadius;
-
-  /// The border color of the list view.
-  final Color borderColor;
-
-  /// The border width of the list view.
-  final double borderWidth;
-
-  /// The box shadow for the list view.
-  final List<BoxShadow>? boxShadow;
-
-  /// The physics for the scroll view.
+  /// Defaults to:
+  /// - [NeverScrollableScrollPhysics] if [shrinkWrap] is `true`,
+  /// - [AlwaysScrollableScrollPhysics] if [shrinkWrap] is `false`,
+  /// unless specified otherwise.
   final ScrollPhysics? physics;
 
-  /// Creates an [InfiniteListView] widget.
+  /// A builder function to create each item of type [T] within the list.
+  final Widget Function(BuildContext context, T item) itemBuilder;
+
+  /// An optional builder for a loading widget, shown when the list is in
+  /// a [LoadingState] or when it first initializes ([InitialState]).
+  final Widget Function(BuildContext context)? loadingWidget;
+
+  /// An optional builder for an error widget, shown when the list is in an
+  /// [ErrorState]. Receives the error message as a parameter.
+  final Widget Function(BuildContext context, String error)? errorWidget;
+
+  /// An optional builder for an empty widget, shown when there are no items
+  /// in the list ([LoadedState.state.items] is empty).
+  final Widget Function(BuildContext context)? emptyWidget;
+
+  /// An optional builder for a widget indicating there are no more items,
+  /// shown when the bloc reaches [NoMoreItemsState].
+  final Widget Function(BuildContext context)? noMoreItemWidget;
+
+  /// An optional widget to display between list items (e.g., a divider).
+  final Widget? dividerWidget;
+
+  /// A callback determining whether to display the divider after the last item.
+  /// If not provided, the divider is shown by default.
+  final BoolCallbackAction? showLastDivider;
+
+  /// Outer margin around the container that wraps the list.
+  final EdgeInsetsGeometry? margin;
+
+  /// Inner padding within the container that wraps the list.
+  final EdgeInsetsGeometry? padding;
+
+  /// Background color of the container that wraps the list.
+  final Color? backgroundColor;
+
+  /// Optional border radius for rounding the corners of the container.
+  final BorderRadiusGeometry? borderRadius;
+
+  /// Border color of the container. Defaults to [Colors.transparent].
+  final Color borderColor;
+
+  /// Border width for the container. Defaults to `1`.
+  final double borderWidth;
+
+  /// A list of [BoxShadow] for the container, allowing shadow effects.
+  final List<BoxShadow>? boxShadow;
+
+  /// Creates an [InfiniteListView].
+  ///
+  /// This constructor is generally not called directly, but rather through
+  /// one of the factory constructors: [InfiniteListView.automatic] or
+  /// [InfiniteListView.manual]. Subclasses like [AutomaticInfiniteListView]
+  /// and [ManualInfiniteListView] extend this class to provide specific
+  /// loading behaviors.
   const InfiniteListView({
     super.key,
     required this.bloc,
-    required this.shrinkWrap,
+    this.shrinkWrap = false,
+    this.physics,
     required this.itemBuilder,
     this.loadingWidget,
     this.errorWidget,
@@ -175,18 +158,31 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     this.borderColor = Colors.transparent,
     this.borderWidth = 1,
     this.boxShadow,
-    this.physics,
   });
 
-  /// Factory constructor for automatic loading mode.
+  /// Creates an [AutomaticInfiniteListView], which automatically loads more
+  /// items when the user scrolls near the bottom of the list.
   ///
-  /// Automatically loads more items when the user scrolls to the bottom of
-  /// the list.
+  /// - [bloc]: An [InfiniteListBloc] that manages the list’s states (loading,
+  ///   error, loaded, etc.).
+  /// - [itemBuilder]: A function to build each list item widget.
+  /// - [shrinkWrap]: Whether the list should wrap its content.
+  ///   Defaults to `false`.
+  /// - [physics]: Optional custom scroll physics.
+  /// - [loadingWidget], [errorWidget], [emptyWidget], [noMoreItemWidget]:
+  ///   Callbacks to provide custom widgets for various states.
+  /// - [dividerWidget]: A widget shown between items.
+  /// - [showLastDivider]: A callback to conditionally show the divider
+  ///   after the last item.
+  /// - [margin], [padding], [backgroundColor], [borderRadius], [borderColor],
+  ///   [borderWidth], [boxShadow]: Visual customization for the container
+  ///   wrapping the list.
   factory InfiniteListView.automatic({
     Key? key,
     required InfiniteListBloc<T> bloc,
     required Widget Function(BuildContext context, T item) itemBuilder,
-    // Optional parameters
+    bool shrinkWrap = false,
+    ScrollPhysics? physics,
     Widget Function(BuildContext context)? loadingWidget,
     Widget Function(BuildContext context, String error)? errorWidget,
     Widget Function(BuildContext context)? emptyWidget,
@@ -200,12 +196,13 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     Color borderColor = Colors.transparent,
     double borderWidth = 1,
     List<BoxShadow>? boxShadow,
-    ScrollPhysics? physics,
   }) {
     return AutomaticInfiniteListView<T>(
       key: key,
       bloc: bloc,
       itemBuilder: itemBuilder,
+      shrinkWrap: shrinkWrap,
+      physics: physics,
       loadingWidget: loadingWidget,
       errorWidget: errorWidget,
       emptyWidget: emptyWidget,
@@ -219,21 +216,33 @@ abstract class InfiniteListView<T> extends StatefulWidget {
       borderColor: borderColor,
       borderWidth: borderWidth,
       boxShadow: boxShadow,
-      physics: physics,
     );
   }
 
-  /// Factory constructor for manual loading mode.
+  /// Creates a [ManualInfiniteListView], which displays a "Load More" button
+  /// (or a custom widget) at the bottom of the list to fetch additional items
+  /// when tapped.
   ///
-  /// Provides a "Load More" button at the end of the list for manual loading
-  /// of more items.
+  /// - [bloc]: An [InfiniteListBloc] that manages the list’s states.
+  /// - [itemBuilder]: A function to build each list item widget.
+  /// - [loadMoreButtonBuilder]: A callback to build a custom "Load More" button.
+  ///   If omitted, a default button is shown.
+  /// - [shrinkWrap]: Whether the list should wrap its content. Defaults to `false`.
+  /// - [physics]: Optional custom scroll physics.
+  /// - [loadingWidget], [errorWidget], [emptyWidget], [noMoreItemWidget]:
+  ///   Callbacks to provide custom widgets for various states.
+  /// - [dividerWidget]: A widget shown between items.
+  /// - [showLastDivider]: A callback to conditionally show the divider
+  ///   after the last item.
+  /// - [margin], [padding], [backgroundColor], [borderRadius], [borderColor],
+  ///   [borderWidth], [boxShadow]: Visual customization for the container
+  ///   wrapping the list.
   factory InfiniteListView.manual({
     Key? key,
     required InfiniteListBloc<T> bloc,
     bool shrinkWrap = false,
     required Widget Function(BuildContext context, T item) itemBuilder,
     Widget Function(BuildContext context)? loadMoreButtonBuilder,
-    // Optional parameters
     Widget Function(BuildContext context)? loadingWidget,
     Widget Function(BuildContext context, String error)? errorWidget,
     Widget Function(BuildContext context)? emptyWidget,
