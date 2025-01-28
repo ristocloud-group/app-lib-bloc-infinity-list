@@ -1,3 +1,8 @@
+## 0.0.8
+
+- Web support
+- Refactoring
+
 ## 0.0.7
 
 - Added a new **AutomaticInfiniteListPage** with `shrinkWrap = false` for classic scrolling
