@@ -78,7 +78,7 @@ jobs:
       # 8. Upload coverage artifact for deployment (Optional)
       - name: Upload Coverage Artifact
         id: deployment
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./coverage  # Path to the coverage directory
 
