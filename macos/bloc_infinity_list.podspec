@@ -5,9 +5,9 @@
 Pod::Spec.new do |s|
   s.name             = 'bloc_infinity_list'
   s.version          = '0.0.1'
-  s.summary          = 'Infinite scrolling ListView with BLoC integration for Flutter applications.'
+  s.summary          = 'A new Flutter project.'
   s.description      = <<-DESC
-Infinite scrolling ListView with BLoC integration for Flutter applications.
+A new Flutter project.
                        DESC
   s.homepage         = 'http://example.com'
   s.license          = { :file => '../LICENSE' }

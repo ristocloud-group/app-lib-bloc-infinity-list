@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       JAVA_VERSION: "17.0"
-      FLUTTER_VERSION: "3.27.2"
+      FLUTTER_VERSION: "3.41.6"
     permissions:
       contents: write        # Grants write access to repository contents
       actions: read
@@ -27,7 +27,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION || '3.10.5' }}  # Provide a default version if not set
+          flutter-version: ${{ env.FLUTTER_VERSION || '3.27.2' }}  # Provide a default version if not set
 
       # 3. Install dependencies
       - name: Install dependencies
