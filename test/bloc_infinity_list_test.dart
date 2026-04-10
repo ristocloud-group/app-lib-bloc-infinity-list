@@ -1,5 +1,4 @@
 import 'package:bloc_infinity_list/bloc_infinity_list.dart';
-import 'package:bloc_infinity_list/infinite_list_bloc/infinite_list_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
