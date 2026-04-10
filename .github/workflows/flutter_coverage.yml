@@ -1,100 +1,77 @@
-name: Flutter Coverage
+name: Flutter Coverage & Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+    paths-ignore:
+      - "**.md"
+      - ".github/badges/**" # Prevents infinite loop when committing the badge
   release:
+    types: [ published ]
 
 jobs:
-  test:
+  test-and-coverage:
     runs-on: ubuntu-latest
-    env:
-      JAVA_VERSION: "17.0"
-      FLUTTER_VERSION: "3.41.6"
     permissions:
-      contents: write        # Grants write access to repository contents
-      actions: read
-      id-token: write
+      contents: write # Grants write access to commit the badge
+      pages: write    # Grants permission to prepare GitHub Pages
+      id-token: write # Required for GitHub Pages
     steps:
-      # 1. Checkout the repository
       - name: Checkout Code
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Ensures all history is fetched
+          fetch-depth: 0
 
-      # 2. Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION || '3.27.2' }}  # Provide a default version if not set
+          cache: true
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. Run tests with coverage
       - name: Run tests with coverage
         run: flutter test --coverage
 
-      # 5. Generate coverage report
       - name: Generate coverage report
         run: |
           sudo apt-get update
           sudo apt-get install -y lcov
           genhtml -o coverage coverage/lcov.info
 
-      # 6. Generate Coverage Badge
       - name: Generate Coverage Badge
         run: |
           COVERAGE_PERCENT=$(lcov --summary coverage/lcov.info | grep -Po '\d+\.\d+%' | head -1 | tr -d '%')
-          curl -o coverage/coverage-badge.svg "https://img.shields.io/badge/Coverage-${COVERAGE_PERCENT}%25-brightgreen.svg"
+          mkdir -p .github/badges
+          curl -o .github/badges/coverage-badge.svg "https://img.shields.io/badge/Coverage-${COVERAGE_PERCENT}%25-brightgreen.svg"
 
-      # 7. Commit Coverage Badge to Repository
       - name: Commit Coverage Badge
-        if: success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create badges directory if it doesn't exist
-          mkdir -p .github/badges
-          
-          # Move the coverage badge to the badges directory
-          mv coverage/coverage-badge.svg .github/badges/coverage-badge.svg
-          
-          # Add the badge to git
           git add .github/badges/coverage-badge.svg
-          
-          # Commit the badge
-          git commit -m "Update coverage badge [skip ci]" || echo "No changes to commit"
-          
-          # Push the changes
+          # [skip ci] prevents this automated commit from triggering another workflow run
+          git commit -m "chore: update coverage badge [skip ci]" || echo "No changes to commit"
           git push origin main
 
-      # 8. Upload coverage artifact for deployment (Optional)
       - name: Upload Coverage Artifact
-        id: deployment
         uses: actions/upload-pages-artifact@v4
         with:
-          path: ./coverage  # Path to the coverage directory
-
+          path: ./coverage
 
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: test
+    needs: test-and-coverage
     runs-on: ubuntu-latest
     permissions:
-      pages: write       # Grants permission to deploy to GitHub Pages
-      id-token: write    # Required for authentication
-
+      pages: write
+      id-token: write
     steps:
-      # 1. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

@@ -1,41 +1,40 @@
-# This is a basic workflow to help you get started with Actions
-name: Flutter testing
+name: Flutter CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [ "main" ]
     paths-ignore:
-      - "**/README.md"
-      - ".github/*"
+      - "**.md"
+      - ".github/badges/**" # Don't run CI just for a badge update
   pull_request:
     branches: [ "main" ]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-  # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    name: flutter build
-    # The type of runner that the job will run on
+    name: Lint & Test
     runs-on: ubuntu-latest
-    env:
-      JAVA_VERSION: "17.0"
-      FLUTTER_VERSION: "3.41.6"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          java-version: ${{env.JAVA_VERSION}}
+          java-version: "17"
           distribution: "temurin"
+          cache: "gradle" # Automatically caches gradle dependencies
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{env.FLUTTER_VERSION}}
-      - run: flutter pub get
-      - run: flutter analyze
+          channel: stable
+          cache: true # Enables native caching to speed up the workflow
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
