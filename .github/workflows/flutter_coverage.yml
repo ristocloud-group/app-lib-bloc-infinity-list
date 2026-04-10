@@ -6,8 +6,6 @@ on:
     paths-ignore:
       - "**.md"
       - ".github/badges/**" # Prevents infinite loop when committing the badge
-  release:
-    types: [ published ]
 
 jobs:
   test-and-coverage:
