@@ -6,7 +6,6 @@ import 'infinite_list_bloc/infinite_list_bloc.dart';
 export 'infinite_list_bloc/infinite_list_bloc.dart';
 
 part 'automatic_infinite_list_view.dart';
-
 part 'manual_infinite_list_view.dart';
 
 /// A typedef representing a callback function that returns a boolean value.

@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'infinite_list_event.dart';
-
 part 'infinite_list_state.dart';
 
 /// Abstract class representing a BLoC for handling infinite lists.
