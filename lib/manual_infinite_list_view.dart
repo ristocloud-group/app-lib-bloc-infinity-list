@@ -69,7 +69,7 @@ class ManualInfiniteListViewState<T> extends State<ManualInfiniteListView<T>> {
             onRefresh: () async {
               widget.bloc.add(LoadItemsEvent());
               await widget.bloc.stream.firstWhere(
-                    (s) => s is LoadedState<T> || s is ErrorState<T>,
+                (s) => s is LoadedState<T> || s is ErrorState<T>,
               );
             },
             child: Container(
@@ -129,24 +129,24 @@ class ManualInfiniteListViewState<T> extends State<ManualInfiniteListView<T>> {
           ElevatedButton(
             key: const Key('loadMoreButton'),
             onPressed:
-            isLoading ? null : () => widget.bloc.add(LoadMoreItemsEvent()),
+                isLoading ? null : () => widget.bloc.add(LoadMoreItemsEvent()),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 50),
               backgroundColor: Colors.deepPurple,
             ),
             child: isLoading
                 ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                strokeWidth: 2.0,
-              ),
-            )
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      strokeWidth: 2.0,
+                    ),
+                  )
                 : const Text(
-              'Load More',
-              style: TextStyle(fontSize: 18, color: Colors.white),
-            ),
+                    'Load More',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
           ),
     );
   }

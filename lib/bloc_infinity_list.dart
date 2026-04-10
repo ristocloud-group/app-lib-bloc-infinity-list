@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'infinite_list_bloc/infinite_list_bloc.dart';
 
 part 'automatic_infinite_list_view.dart';
+
 part 'manual_infinite_list_view.dart';
 
 /// A typedef representing a callback function that returns a boolean value.
