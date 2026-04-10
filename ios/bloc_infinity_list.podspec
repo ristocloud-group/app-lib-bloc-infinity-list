@@ -5,9 +5,9 @@
 Pod::Spec.new do |s|
   s.name             = 'bloc_infinity_list'
   s.version          = '0.0.1'
-  s.summary          = 'Infinite scrolling ListView with BLoC integration for Flutter applications.'
+  s.summary          = 'A new Flutter project.'
   s.description      = <<-DESC
-Infinite scrolling ListView with BLoC integration for Flutter applications.
+A new Flutter project.
                        DESC
   s.homepage         = 'http://example.com'
   s.license          = { :file => '../LICENSE' }
@@ -15,7 +15,7 @@ Infinite scrolling ListView with BLoC integration for Flutter applications.
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.platform = :ios, '12.0'
+  s.platform = :ios, '13.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bloc_infinity_list/bloc_infinity_list.dart';
-import 'package:bloc_infinity_list/infinite_list_bloc/infinite_list_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -90,22 +89,16 @@ class _HomePageState extends State<HomePage> {
 
   // We now have 4 pages:
   final List<Widget> _pages = [
-    // Automatic with shrinkWrap = true
     const AutomaticInfiniteListPage(),
-    // Automatic with shrinkWrap = false (NEW PAGE)
     const AutomaticInfiniteListPageNoShrinkWrap(),
-    // Manual infinite list
     const ManualInfiniteListPage(),
-    // Manual infinite list with initial items
     const ManualInfiniteListPageWithInitialItems(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Infinite ListView Example'),
-      ),
+      appBar: AppBar(title: const Text('Infinite ListView Example')),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -120,10 +113,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.vertical_align_bottom),
             label: 'Auto Full',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.touch_app),
-            label: 'Manual',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.touch_app), label: 'Manual'),
           BottomNavigationBarItem(
             icon: Icon(Icons.list_alt),
             label: 'Default Manual',
@@ -184,6 +174,10 @@ class _AutomaticInfiniteListPageState extends State<AutomaticInfiniteListPage> {
             offset: const Offset(0, 3),
           ),
         ],
+        refreshIndicatorColor: Colors.purple,
+        refreshIndicatorBackgroundColor: Colors.white,
+        refreshIndicatorDisplacement: 50.0,
+        refreshIndicatorStrokeWidth: 3.0,
         itemBuilder: _buildListItem,
         dividerWidget: const SizedBox(height: 0),
         loadingWidget: _buildLoadingWidget,
@@ -198,9 +192,7 @@ class _AutomaticInfiniteListPageState extends State<AutomaticInfiniteListPage> {
     return Card(
       elevation: 2.0,
       margin: const EdgeInsets.symmetric(vertical: 4.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).primaryColor,
@@ -209,81 +201,70 @@ class _AutomaticInfiniteListPageState extends State<AutomaticInfiniteListPage> {
             style: const TextStyle(color: Colors.white),
           ),
         ),
-        title: Text(
-          item.name,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        title: Text(item.name, style: Theme.of(context).textTheme.titleLarge),
         subtitle: Text(
           item.description,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Tapped on ${item.name}')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Tapped on ${item.name}')));
         },
       ),
     );
   }
 
   Widget _buildLoadingWidget(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Center(
-          child: CircularProgressIndicator(
-            valueColor:
-                AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
-          ),
+    padding: const EdgeInsets.all(12.0),
+    child: Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(
+          Theme.of(context).primaryColor,
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _buildErrorWidget(BuildContext context, String error) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
-            const SizedBox(height: 8),
-            Text(
-              'Something went wrong!',
-              style: TextStyle(
-                color: Colors.red.shade300,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                _bloc.add(LoadItemsEvent());
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-              ),
-            ),
-          ],
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
+        const SizedBox(height: 8),
+        Text(
+          'Something went wrong!',
+          style: TextStyle(color: Colors.red.shade300, fontSize: 18),
         ),
-      );
+        const SizedBox(height: 8),
+        ElevatedButton.icon(
+          onPressed: () {
+            _bloc.add(LoadItemsEvent());
+          },
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildEmptyWidget(BuildContext context) => Center(
-        child: Text(
-          'No items available',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 18,
-          ),
-        ),
-      );
+    child: Text(
+      'No items available',
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 18),
+    ),
+  );
 
   Widget _buildNoMoreItemWidget(BuildContext context) => Center(
-        child: Text(
-          'You have reached the end!',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 16,
-          ),
-        ),
-      );
+    child: Text(
+      'You have reached the end!',
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+    ),
+  );
 }
 
 class AutomaticInfiniteListPageNoShrinkWrap extends StatefulWidget {
@@ -346,9 +327,7 @@ class _AutomaticInfiniteListPageNoShrinkWrapState
     return Card(
       elevation: 2.0,
       margin: const EdgeInsets.symmetric(vertical: 4.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).primaryColor,
@@ -357,81 +336,70 @@ class _AutomaticInfiniteListPageNoShrinkWrapState
             style: const TextStyle(color: Colors.white),
           ),
         ),
-        title: Text(
-          item.name,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        title: Text(item.name, style: Theme.of(context).textTheme.titleLarge),
         subtitle: Text(
           item.description,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Tapped on ${item.name}')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Tapped on ${item.name}')));
         },
       ),
     );
   }
 
   Widget _buildLoadingWidget(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Center(
-          child: CircularProgressIndicator(
-            valueColor:
-                AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
-          ),
+    padding: const EdgeInsets.all(12.0),
+    child: Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(
+          Theme.of(context).primaryColor,
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _buildErrorWidget(BuildContext context, String error) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
-            const SizedBox(height: 8),
-            Text(
-              'Something went wrong!',
-              style: TextStyle(
-                color: Colors.red.shade300,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                _bloc.add(LoadItemsEvent());
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-              ),
-            ),
-          ],
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
+        const SizedBox(height: 8),
+        Text(
+          'Something went wrong!',
+          style: TextStyle(color: Colors.red.shade300, fontSize: 18),
         ),
-      );
+        const SizedBox(height: 8),
+        ElevatedButton.icon(
+          onPressed: () {
+            _bloc.add(LoadItemsEvent());
+          },
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildEmptyWidget(BuildContext context) => Center(
-        child: Text(
-          'No items available',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 18,
-          ),
-        ),
-      );
+    child: Text(
+      'No items available',
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 18),
+    ),
+  );
 
   Widget _buildNoMoreItemWidget(BuildContext context) => Center(
-        child: Text(
-          'You have reached the end!',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 16,
-          ),
-        ),
-      );
+    child: Text(
+      'You have reached the end!',
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+    ),
+  );
 }
 
 /// A page demonstrating the manual infinite list with a "Load More" button.
@@ -480,11 +448,7 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
         physics: const BouncingScrollPhysics(),
         itemBuilder: _buildListItem,
         loadMoreButtonBuilder: _buildLoadMoreButton,
-        dividerWidget: const Divider(
-          height: 2,
-          thickness: 1,
-          indent: 20,
-        ),
+        dividerWidget: const Divider(height: 2, thickness: 1, indent: 20),
         showLastDivider: () => _bloc.state is! NoMoreItemsState,
         loadingWidget: _buildLoadingWidget,
         errorWidget: _buildErrorWidget,
@@ -498,9 +462,7 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
     return Card(
       elevation: 2.0,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).primaryColor,
@@ -509,10 +471,7 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
             style: const TextStyle(color: Colors.white),
           ),
         ),
-        title: Text(
-          item.name,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        title: Text(item.name, style: Theme.of(context).textTheme.titleLarge),
         subtitle: Text(
           item.description,
           style: Theme.of(context).textTheme.bodyMedium,
@@ -520,9 +479,9 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
           // Handle item tap
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Tapped on ${item.name}')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Tapped on ${item.name}')));
         },
       ),
     );
@@ -563,62 +522,54 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
   }
 
   Widget _buildLoadingWidget(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: CircularProgressIndicator(
-            valueColor:
-                AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
-          ),
+    padding: const EdgeInsets.all(16.0),
+    child: Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(
+          Theme.of(context).primaryColor,
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _buildErrorWidget(BuildContext context, String error) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
-            const SizedBox(height: 8),
-            Text(
-              'Something went wrong!',
-              style: TextStyle(
-                color: Colors.red.shade300,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                _bloc.add(LoadItemsEvent());
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-              ),
-            ),
-          ],
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
+        const SizedBox(height: 8),
+        Text(
+          'Something went wrong!',
+          style: TextStyle(color: Colors.red.shade300, fontSize: 18),
         ),
-      );
+        const SizedBox(height: 8),
+        ElevatedButton.icon(
+          onPressed: () {
+            _bloc.add(LoadItemsEvent());
+          },
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildEmptyWidget(BuildContext context) => Center(
-        child: Text(
-          'No items available',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 18,
-          ),
-        ),
-      );
+    child: Text(
+      'No items available',
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 18),
+    ),
+  );
 
   Widget _buildNoMoreItemWidget(BuildContext context) => Center(
-        child: Text(
-          'You have reached the end!',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 16,
-          ),
-        ),
-      );
+    child: Text(
+      'You have reached the end!',
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+    ),
+  );
 }
 
 /// A second manual infinite list page demonstrating another manual list with initial items.
@@ -716,9 +667,7 @@ class _ManualInfiniteListPageWithInitialItemsState
     return Card(
       elevation: 2.0,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.deepPurple,
@@ -727,10 +676,7 @@ class _ManualInfiniteListPageWithInitialItemsState
             style: const TextStyle(color: Colors.white),
           ),
         ),
-        title: Text(
-          item.name,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        title: Text(item.name, style: Theme.of(context).textTheme.titleLarge),
         subtitle: Text(
           item.description,
           style: Theme.of(context).textTheme.bodyMedium,
@@ -738,9 +684,9 @@ class _ManualInfiniteListPageWithInitialItemsState
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
           // Handle item tap
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Tapped on ${item.name}')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Tapped on ${item.name}')));
         },
       ),
     );
@@ -781,57 +727,44 @@ class _ManualInfiniteListPageWithInitialItemsState
   }
 
   Widget _buildLoadingWidget(BuildContext context) => const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+    padding: EdgeInsets.all(16.0),
+    child: Center(child: CircularProgressIndicator()),
+  );
 
   Widget _buildErrorWidget(BuildContext context, String error) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
-            const SizedBox(height: 8),
-            Text(
-              'Something went wrong!',
-              style: TextStyle(
-                color: Colors.red.shade300,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                _bloc.add(LoadItemsEvent());
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-              ),
-            ),
-          ],
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
+        const SizedBox(height: 8),
+        Text(
+          'Something went wrong!',
+          style: TextStyle(color: Colors.red.shade300, fontSize: 18),
         ),
-      );
+        const SizedBox(height: 8),
+        ElevatedButton.icon(
+          onPressed: () {
+            _bloc.add(LoadItemsEvent());
+          },
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildEmptyWidget(BuildContext context) => Center(
-        child: Text(
-          'No items available',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 18,
-          ),
-        ),
-      );
+    child: Text(
+      'No items available',
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 18),
+    ),
+  );
 
   Widget _buildNoMoreItemWidget(BuildContext context) => Center(
-        child: Text(
-          'No more items',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 16,
-          ),
-        ),
-      );
+    child: Text(
+      'No more items',
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+    ),
+  );
 }
