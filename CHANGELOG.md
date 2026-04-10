@@ -1,3 +1,8 @@
+## 0.1.1
+
+- Workflow refactoring
+- Refactoring
+
 ## 0.1.0
 
 - **Concurrency Control**: Integrated `bloc_concurrency` to eliminate race conditions between
