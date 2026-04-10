@@ -7,26 +7,42 @@
 
 ## Overview
 
-**Infinite ListView for Flutter** is a customizable infinite scrolling list widget, built with BLoC
-pattern integration. It simplifies the creation of paginated lists in your Flutter application by
-seamlessly loading more items as the user scrolls.
+**Infinite ListView for Flutter** is a highly customizable, concurrency-safe infinite scrolling list
+widget built with the BLoC pattern.
+
+It simplifies the creation of paginated lists in your Flutter application by managing the complex
+states of fetching data (loading, loaded, errors, and exhaustion). With built-in `bloc_concurrency`
+transformers, it entirely eliminates async race conditions between pull-to-refresh gestures and
+scroll-to-bottom pagination requests.
+
+## Features
+
+- 🔄 **Race-Condition Free**: Safely handles concurrent fetch events using `restartable` and
+  `droppable` transformers.
+- 📜 **Two Modes**: Choose between **Automatic** (loads seamlessly as the user scrolls) and
+  **Manual** (requires tapping a "Load More" button).
+- 🎨 **Deeply Customizable**: Fully customize the Native `RefreshIndicator`, borders, shadows,
+  margins, paddings, and loading/error states.
+- ⚡ **Single Import**: Everything you need (Widgets, Blocs, Events, and States) is accessible
+  through one clean import.
 
 ## Documentation
 
-For detailed documentation, usage examples, and more, please visit
+For detailed documentation, widget properties, and architecture explanations, please visit
 our [Wiki](https://github.com/ristocloud-group/app-lib-bloc-infinity-list/wiki).
 
 ## Getting Started
 
-To get started with `bloc_infinity_list`, follow
+To install and get started with `bloc_infinity_list`, follow
 our [Getting Started guide](https://github.com/ristocloud-group/app-lib-bloc-infinity-list/wiki/Getting-Started)
 in the Wiki.
 
 ## Examples
 
 Check out
-various [Examples](https://github.com/ristocloud-group/app-lib-bloc-infinity-list/wiki/Examples) to
-see how you can use `bloc_infinity_list` in your Flutter projects.
+various [Complete Examples](https://github.com/ristocloud-group/app-lib-bloc-infinity-list/wiki/Examples)
+to
+see how you can easily implement both Automatic and Manual lists in your Flutter projects.
 
 ## Contributing
 
