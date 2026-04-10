@@ -1,0 +1,74 @@
+name: "CodeQL Advanced Security"
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - '**.md'
+      - '.github/badges/**'
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '30 4 * * 1' # Runs every Monday at 04:30 UTC to catch newly discovered vulnerabilities
+
+jobs:
+  analyze:
+    name: Analyze Native Code (${{ matrix.language }})
+    # Swift must run on macOS. The others run fine on ubuntu to save Actions minutes.
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
+    
+    permissions:
+      actions: read
+      contents: read
+      security-events: write # Required for CodeQL to upload results to the GitHub Security tab
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # We explicitly omit Dart. 
+        # This scans: Web (javascript), Android (java), Windows/Linux (cpp), and iOS/macOS (swift).
+        language: [ 'javascript-typescript', 'java-kotlin', 'c-cpp', 'swift' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    # 1. Setup Java (Required if CodeQL analyzes the Android directory)
+    - name: Setup Java
+      if: matrix.language == 'java-kotlin'
+      uses: actions/setup-java@v5
+      with:
+        java-version: "17"
+        distribution: "temurin"
+
+    # 2. Setup Flutter (Required to generate platform files and fetch dependencies)
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        cache: true
+
+    - name: Get Flutter Dependencies
+      run: flutter pub get
+
+    # 3. Initialize CodeQL
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Optional: You can add queries for stricter analysis
+        # queries: security-extended,security-and-quality
+
+    # 4. Attempt to Autobuild
+    # For many Flutter plugins, autobuild works perfectly. 
+    # If it fails for C++ or Swift, you may need to replace this with explicit build commands 
+    # (e.g., `cd example && flutter build apk` or `flutter build ios --no-codesign`).
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    # 5. Perform the final security scan and upload to GitHub
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
